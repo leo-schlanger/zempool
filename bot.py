@@ -4,6 +4,7 @@ from discord import app_commands
 import os
 import logging
 from dotenv import load_dotenv
+from keep_alive import keep_alive
 
 from utils.fetch_pool import fetch_pool_data
 from utils.chart_analysis import get_historical_prices_stub, suggest_price_range
@@ -13,6 +14,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ZenPool")
 
 load_dotenv()
+keep_alive()
+
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="/", intents=intents)
@@ -107,4 +110,5 @@ async def on_ready():
     except Exception as e:
         logger.error(f"Error syncing commands: {e}")
 
+keep_alive()
 bot.run(TOKEN)
