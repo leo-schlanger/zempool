@@ -62,11 +62,13 @@ class GenerateCommand(app_commands.Command):
             logger.info(f"Using fee rate for DEX {info['dex']}: {fee_rate}")
 
             # APR real ou estimado
-            if real_apr_info and real_apr_info.get("apr", 0) > 0:
-                apr_value = real_apr_info["apr"]
+            real_apr = real_apr_info["apr"] if real_apr_info and real_apr_info.get("apr", 0) > 0 else None
+            if real_apr:
+                apr_value = real_apr
             else:
                 estimated_apr = (info["volume_usd"] / info["liquidity_usd"]) * fee_rate * 365 * 100
                 apr_value = round(estimated_apr, 2)
+                logger.warning(f"Estimated APR used: {apr_value}%")
                 logger.warning(f"Estimated APR used: {apr_value}%")
 
             if not apr_value:
@@ -82,12 +84,13 @@ class GenerateCommand(app_commands.Command):
             closes = fetch_closing_prices(info["pair"].split("/")[0].lower())
             price_range = get_price_range_by_density(closes)
 
-            if not price_range:
-                logger.warning("⚠️ Could not compute density-based range.")
+            if not price_range or price_range["lower"] == price_range["upper"]:
+                logger.warning("⚠️ Fallback range applied ±0.5% around current price.")
+                price = info["price_usd"]
                 price_range = {
-                    "lower": info["price_usd"],
-                    "upper": info["price_usd"],
-                    "confidence": "⚠️ Not enough candle data for range"
+                    "lower": round(price * 0.995, 4),
+                    "upper": round(price * 1.005, 4),
+                    "confidence": "Fallback ±0.5% range applied"
                 }
                 coverage = 1.0
             else:
@@ -121,7 +124,7 @@ class GenerateCommand(app_commands.Command):
 • Weekly: {apr_weekly}%
 • Yearly: {apr_value}%
 
-**Range:** `$ {format_small_number(price_range['lower'])}` - `$ {format_small_number(price_range['upper'])}`
+**Range:** `$ {format_small_number(price_range['lower'])}` - `$ {format_small_number(price_range['upper'])}`\n*{price_range.get("confidence", "")}*
 *Note: Gas and IL not included.*
 
 **Earnings Estimation (for $1000 in pool):**
