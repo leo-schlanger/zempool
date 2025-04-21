@@ -20,3 +20,11 @@ def get_price_range_by_density(closing_prices: list[float], percent_cover: float
         "upper": round(float(upper), 4),
         "confidence": f"{int(percent_cover * 100)}% of daily closing prices"
     }
+
+
+
+def get_range_coverage_ratio(prices, range_low, range_high):
+    if not prices:
+        return 0
+    inside = [p for p in prices if range_low <= p <= range_high]
+    return round(len(inside) / len(prices), 4)

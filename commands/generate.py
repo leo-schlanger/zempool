@@ -1,4 +1,3 @@
-# coding: utf-8
 import discord
 from discord import app_commands
 from config.supported_networks import SUPPORTED_NETWORKS
@@ -48,7 +47,7 @@ class GenerateCommand(app_commands.Command):
             symbol = info["pair"]
             real_apr_info = get_best_real_apr(symbol, network)
 
-            # Fee dinâmico por DEX
+            # Fee por DEX
             dex_fee_rates = {
                 "uniswap": 0.003,
                 "sushiswap": 0.003,
@@ -62,13 +61,14 @@ class GenerateCommand(app_commands.Command):
             fee_rate = dex_fee_rates.get(info["dex"].lower(), 0.003)
             logger.info(f"Using fee rate for DEX {info['dex']}: {fee_rate}")
 
+            # APR real ou estimado
             if real_apr_info and "apr" in real_apr_info and real_apr_info["apr"] > 0:
                 apr_value = real_apr_info["apr"]
                 logger.debug(f"Using real APR from external source: {apr_value}%")
             else:
                 estimated_apr = (info["volume_usd"] / info["liquidity_usd"]) * fee_rate * 365 * 100
                 apr_value = round(estimated_apr, 2)
-                logger.warning(f"No real APR found. Estimated APR used: {apr_value}%")
+                logger.warning(f"No real APR found. Estimated with DEX fee model: {apr_value}%")
 
             if not apr_value:
                 await interaction.followup.send("❌ Could not retrieve APR data.")
@@ -92,11 +92,17 @@ class GenerateCommand(app_commands.Command):
                 coverage = 1.0
             else:
                 coverage = get_range_coverage_ratio(closes, price_range["lower"], price_range["upper"])
-                logger.info(f"Price range coverage: {coverage * 100:.2f}%")
+                logger.info(f"Price range coverage: {coverage * 100:.2f}% of daily candles")
                 apr_value = round(apr_value * coverage, 2)
 
             apr_daily = round(apr_value / 365, 4)
             apr_weekly = round(apr_value / 52, 4)
+
+            # Estimativa de ganhos para $1000
+            capital = 1000
+            earn_day = round((apr_value / 100) / 365 * capital, 2)
+            earn_week = round((apr_value / 100) / 52 * capital, 2)
+            earn_year = round((apr_value / 100) * capital, 2)
 
             msg = f"""**🧘 ZenPool Analysis Complete!**
 
@@ -114,7 +120,13 @@ class GenerateCommand(app_commands.Command):
 • Yearly: {apr_value}%
 
 **Range:** `$ {format_small_number(price_range['lower'])}` - `$ {format_small_number(price_range['upper'])}`
-*Note: Gas and IL not included.*"""
+*Note: Gas and IL not included.*
+
+**Earnings Estimation (for $1000 in pool):**
+• Daily: `$ {earn_day}`
+• Weekly: `$ {earn_week}`
+• Yearly: `$ {earn_year}`
+"""
 
             await interaction.followup.send(msg)
         except Exception as e:
