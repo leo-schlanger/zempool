@@ -47,7 +47,7 @@ class GenerateCommand(app_commands.Command):
             symbol = info["pair"]
             real_apr_info = get_best_real_apr(symbol, network)
 
-            # Fee por DEX
+            # Tabela de fee por DEX
             dex_fee_rates = {
                 "uniswap": 0.003,
                 "sushiswap": 0.003,
@@ -62,18 +62,18 @@ class GenerateCommand(app_commands.Command):
             logger.info(f"Using fee rate for DEX {info['dex']}: {fee_rate}")
 
             # APR real ou estimado
-            if real_apr_info and "apr" in real_apr_info and real_apr_info["apr"] > 0:
+            if real_apr_info and real_apr_info.get("apr", 0) > 0:
                 apr_value = real_apr_info["apr"]
-                logger.debug(f"Using real APR from external source: {apr_value}%")
             else:
                 estimated_apr = (info["volume_usd"] / info["liquidity_usd"]) * fee_rate * 365 * 100
                 apr_value = round(estimated_apr, 2)
-                logger.warning(f"No real APR found. Estimated with DEX fee model: {apr_value}%")
+                logger.warning(f"Estimated APR used: {apr_value}%")
 
             if not apr_value:
                 await interaction.followup.send("❌ Could not retrieve APR data.")
                 return
 
+            # Simula APR x APY
             earnings = simulate_apr_apy(apr_value, info["volume_usd"], info["liquidity_usd"])
             if earnings is None:
                 await interaction.followup.send("❌ Could not calculate APR.")
@@ -83,7 +83,7 @@ class GenerateCommand(app_commands.Command):
             price_range = get_price_range_by_density(closes)
 
             if not price_range:
-                logger.warning("Fallback: Could not compute density-based range.")
+                logger.warning("⚠️ Could not compute density-based range.")
                 price_range = {
                     "lower": info["price_usd"],
                     "upper": info["price_usd"],
@@ -92,18 +92,20 @@ class GenerateCommand(app_commands.Command):
                 coverage = 1.0
             else:
                 coverage = get_range_coverage_ratio(closes, price_range["lower"], price_range["upper"])
-                logger.info(f"Price range coverage: {coverage * 100:.2f}% of daily candles")
                 apr_value = round(apr_value * coverage, 2)
+                logger.info(f"Range coverage: {coverage*100:.2f}%")
 
+            # Estimativas
             apr_daily = round(apr_value / 365, 4)
             apr_weekly = round(apr_value / 52, 4)
 
-            # Estimativa de ganhos para $1000
+            # Ganhos estimados com $1000
             capital = 1000
             earn_day = round((apr_value / 100) / 365 * capital, 2)
             earn_week = round((apr_value / 100) / 52 * capital, 2)
             earn_year = round((apr_value / 100) * capital, 2)
 
+            # Mensagem final
             msg = f"""**🧘 ZenPool Analysis Complete!**
 
 **Pair:** {info['pair']}

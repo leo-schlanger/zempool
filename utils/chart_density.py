@@ -1,3 +1,4 @@
+import logging
 
 import numpy as np
 from statistics import quantiles
@@ -14,6 +15,13 @@ def get_price_range_by_density(closing_prices: list[float], percent_cover: float
 
     lower = np.quantile(prices, lower_quantile)
     upper = np.quantile(prices, upper_quantile)
+
+    # Fallback: se lower == upper, aplica margem artificial de ±0.5%
+    if lower == upper:
+        logger = logging.getLogger("ZenPool")
+        logger.warning("Density range lower == upper. Applying ±0.5% fallback margin.")
+        lower *= 0.925
+        upper *= 1.075
 
     return {
         "lower": round(float(lower), 4),
