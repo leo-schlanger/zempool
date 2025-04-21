@@ -7,9 +7,7 @@ from dotenv import load_dotenv
 
 from utils.fetch_pool import fetch_pool_data
 from utils.chart_analysis import get_historical_prices_stub, suggest_price_range
-from utils.simulate_earnings import simulate_apr_apy, format_small_number
-from external_aprs.unified_apr import get_best_real_apr
-
+from utils.simulate_earnings import simulate_apr_apy
 from keep_alive import keep_alive
 
 logging.basicConfig(level=logging.INFO)
@@ -50,37 +48,26 @@ class ZenPoolCommands(app_commands.Group):
             await interaction.followup.send(info)
             return
 
-        real_apr_info = get_best_real_apr(pair, network)
-        real_apr_line = (
-            f"🔥 Real APR from {real_apr_info['source']}: `{real_apr_info['apr']}%`\n<{real_apr_info['url']}>"
-            if real_apr_info else "🧠 No farming APR found. Estimated only from trading volume."
-        )
-
         prices = get_historical_prices_stub(float(info["price_usd"]))
         price_range = suggest_price_range(prices)
-
-        earnings = simulate_apr_apy(
-            real_apr_info['apr'] if real_apr_info else info["apr"],
-            info["volume_usd"],
-            info["liquidity_usd"]
-        )
+        earnings = simulate_apr_apy(info["apr"], info["volume_usd"], info["liquidity_usd"])
 
         range_msg = (
             f"**📈 Recommended LP Range:**  \n"
-            f"`$ {format_small_number(price_range['lower'])}` — `$ {format_small_number(price_range['upper'])}`  \n"
+            f"`$ {price_range['lower']}` — `$ {price_range['upper']}`  \n"
             f"*Confidence: {price_range['confidence']}*"
         ) if price_range else "Could not determine a stable price range."
 
         earnings_msg = (
             f"**💸 Simulated Earnings for $100 Deposit**\n\n"
-            f"**APR Return:**\n"
+            f"**APR (Simple Interest):**\n"
             f"• Daily: `$ {earnings['apr_return_usd']['daily']}`\n"
             f"• Monthly: `$ {earnings['apr_return_usd']['monthly']}`\n"
             f"• Yearly: `$ {earnings['apr_return_usd']['yearly']}`\n\n"
-            f"**APY (Compounded):**\n"
-            f"• Daily: `{earnings['apy_percent']['daily']}%`\n"
-            f"• Monthly: `{earnings['apy_percent']['monthly']}%`\n"
-            f"• Yearly: `{earnings['apy_percent']['yearly']}%`"
+            f"**APY (Compounded Daily):**\n"
+            f"• Daily: `$ {earnings['apy_percent']['daily']}`\n"
+            f"• Monthly: `$ {earnings['apy_percent']['monthly']}`\n"
+            f"• Yearly: `$ {earnings['apy_percent']['yearly']}`"
         ) if earnings else "Could not simulate earnings. Invalid APR data."
 
         msg = (
@@ -88,10 +75,10 @@ class ZenPoolCommands(app_commands.Group):
             f"**Pair:** {info['pair']}\n"
             f"**Network:** {info['network']}\n"
             f"**DEX:** {info['dex']}\n"
-            f"**Current Price:** `$ {format_small_number(float(info['price_usd']))}`\n"
+            f"**Current Price:** `$ {float(info['price_usd']):,.4f}`\n"
             f"**24h Volume:** `$ {float(info['volume_usd']):,.2f}`\n"
             f"**Liquidity:** `$ {float(info['liquidity_usd']):,.2f}`\n"
-            f"{real_apr_line}\n\n"
+            f"**Estimated APR:** {info['apr']}\n\n"
             f"{range_msg}\n\n"
             f"{earnings_msg}\n\n"
             f"*Note: gas fees and impermanent loss are not included.*"
@@ -108,8 +95,8 @@ class ZenPoolCommands(app_commands.Group):
             "Start typing a network name and use auto-complete suggestions.\n"
             "Example: `/zenpool generate sonic 0x...`\n\n"
             "🔍 **How APR and APY are calculated:**\n"
-            "- **APR Estimated**: calculated from 24h volume and pool liquidity, assuming 0.3% trading fees.\n"
-            "- **APR Real**: pulled from Beefy if matched by address.\n"
+            "- **APR Estimated**: calculated from 24h volume and pool liquidity, assuming 0.3% trading fees."
+            "- **APR Real**: pulled from Beefy, Velodrome, or Thena if matched by address."
             "- **APY**: compounded version of the APR, calculated daily/monthly/yearly."
         )
 
