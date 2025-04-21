@@ -4,7 +4,7 @@ BEEFY_API = "https://api.beefy.finance/vaults"
 
 def fetch_beefy_aprs():
     try:
-        response = requests.get(BEEFY_API, timeout=10))
+        response = requests.get(BEEFY_API, timeout=10)
         if response.status_code != 200:
             return []
 
