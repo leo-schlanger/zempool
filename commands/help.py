@@ -1,25 +1,22 @@
-from discord import app_commands, Embed
-import logging
+import discord
+from discord import app_commands
 
-logger = logging.getLogger("ZenPool")
+class HelpCommand(app_commands.Command):
+    def __init__(self):
+        async def callback(interaction: discord.Interaction):
+            await interaction.response.send_message(
+                "**ZenPool Help 🧘**\n\n"
+                "Use `/zenpool generate <network> <pair>` to analyze a pool.\n"
+                "Start typing a network name and use auto-complete suggestions.\n\n"
+                "**How APR and APY are calculated:**\n"
+                "- Real APR is fetched from Beefy/Velodrome/Thena.\n"
+                "- Estimated APR is based on volume/liquidity.\n"
+                "- APY is compounded daily from APR.\n\n"
+                "*Note: gas fees and impermanent loss are not included.*"
+            )
 
-def show_help(func):
-    @app_commands.command(name="help", description="Show usage instructions")
-    async def wrapper(self, interaction):
-        logger.info("Received /zenpool help command.")
-
-        embed = Embed(title="🧘 ZenPool Help", color=0x1ABC9C)
-        embed.add_field(
-            name="How to use",
-            value="Use `/zenpool generate <network> <pair>` to analyze a pool.\nExample: `/zenpool generate sonic 0x...`",
-            inline=False
+        super().__init__(
+            name="help",
+            description="Show usage instructions",
+            callback=callback,
         )
-        embed.add_field(
-            name="APR vs APY",
-            value="- **Estimated APR** = from volume and liquidity\n- **Real APR** = pulled from Beefy if matched\n- **APY** = compounded daily/monthly/yearly",
-            inline=False
-        )
-        embed.set_footer(text="Note: Gas fees and impermanent loss are not included.")
-
-        await interaction.response.send_message(embed=embed)
-    return wrapper

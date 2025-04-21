@@ -10,108 +10,72 @@ import logging
 logger = logging.getLogger("ZenPool")
 
 async def network_autocomplete(interaction: discord.Interaction, current: str):
-    try:
-        return [
-            app_commands.Choice(name=net, value=net)
-            for net in SUPPORTED_NETWORKS
-            if current.lower() in net.lower()
-        ][:25]
-    except Exception as e:
-        logger.error(f"Autocomplete error: {e}")
-        return []
+    return [
+        app_commands.Choice(name=net, value=net)
+        for net in SUPPORTED_NETWORKS if current.lower() in net.lower()
+    ][:25]
 
-class ZenPoolGroup(app_commands.Group):
+class GenerateCommand(app_commands.Command):
     def __init__(self):
-        super().__init__(name="zenpool", description="ZenPool commands")
+        async def callback(interaction: discord.Interaction, network: str, pair: str):
+            try:
+                await interaction.response.defer(thinking=True)
+                info = fetch_pool_data(network, pair)
+                if isinstance(info, str):
+                    await interaction.followup.send(info)
+                    return
 
-    @app_commands.command(name="generate", description="Analyze a pair and simulate LP returns")
-    @app_commands.describe(network="Blockchain network", pair="Pair address (contract)")
-    @app_commands.autocomplete(network=network_autocomplete)
-    async def generate(self, interaction: discord.Interaction, network: str, pair: str):
-        if interaction.is_expired():
-            logger.error("❌ Interaction expired before processing.")
-            return
+                real_apr_info = get_best_real_apr(pair, network)
+                real_apr_line = (
+                    f"🔥 Real APR from {real_apr_info['source']}: `{real_apr_info['apr']}%`\n<{real_apr_info['url']}>"
+                    if real_apr_info else "🧠 No farming APR found. Estimated only from trading volume."
+                )
 
-        logger.info(f"Running analysis for network={network}, pair={pair}")
+                prices = fetch_closing_prices(info["pair"].split("/")[0].lower())
+                price_range = suggest_price_range(prices)
+                apr_value = real_apr_info['apr'] if real_apr_info else info.get("apr")
 
-        try:
-            await interaction.response.defer(thinking=True)
-        except discord.NotFound:
-            logger.error("❌ Could not defer — interaction not found.")
-            return
-        except Exception as e:
-            logger.error(f"ZenPool: Defer error: {e}")
-            return
+                if apr_value is None:
+                    await interaction.followup.send("❌ Could not retrieve APR data for this pool.")
+                    return
 
-        try:
-            info = fetch_pool_data(network, pair)
-            if isinstance(info, str):
-                await interaction.followup.send(info)
-                return
+                earnings = simulate_apr_apy(apr_value, info["volume_usd"], info["liquidity_usd"])
+                if earnings is None:
+                    await interaction.followup.send("❌ An error occurred: APR calculation failed.")
+                    return
 
-            real_apr_info = get_best_real_apr(pair, network)
-            real_apr_line = (
-                f"🔥 Real APR from {real_apr_info['source']}: `{real_apr_info['apr']}%`\n<{real_apr_info['url']}>"
-                if real_apr_info else "🧠 No farming APR found. Estimated only from trading volume."
-            )
+                msg = (
+                    f"**🧘 ZenPool Analysis Complete!**\n\n"
+                    f"**Pair:** {info['pair']}\n"
+                    f"**Network:** {info['network']}\n"
+                    f"**DEX:** {info['dex']}\n"
+                    f"**Current Price:** `$ {format_small_number(float(info['price_usd']))}`\n"
+                    f"**24h Volume:** `$ {float(info['volume_usd']):,.2f}`\n"
+                    f"**Liquidity:** `$ {float(info['liquidity_usd']):,.2f}`\n"
+                    f"{real_apr_line}\n\n"
+                    f"**📈 Recommended LP Range:**\n"
+                    f"`$ {format_small_number(price_range['lower'])}` — `$ {format_small_number(price_range['upper'])}`\n"
+                    f"*Confidence: {price_range['confidence']}*\n\n"
+                    f"**💸 Simulated Earnings for $100 Deposit**\n\n"
+                    f"**APR Return:**\n"
+                    f"• Daily: `$ {earnings['apr_return_usd']['daily']}`\n"
+                    f"• Monthly: `$ {earnings['apr_return_usd']['monthly']}`\n"
+                    f"• Yearly: `$ {earnings['apr_return_usd']['yearly']}`\n\n"
+                    f"**APY (Compounded):**\n"
+                    f"• Daily: `{earnings['apy_percent']['daily']}%`\n"
+                    f"• Monthly: `{earnings['apy_percent']['monthly']}%`\n"
+                    f"• Yearly: `{earnings['apy_percent']['yearly']}%`\n\n"
+                    f"*Note: gas fees and impermanent loss are not included.*"
+                )
+                await interaction.followup.send(msg)
 
-            prices = fetch_closing_prices(info["pair"].split("/")[0].lower())
-            price_range = suggest_price_range(prices)
+            except Exception as e:
+                logger.error(f"ZenPool Error: {e}")
+                await interaction.followup.send("❌ An unexpected error occurred during analysis.")
 
-            apr_value = None
-            if real_apr_info and 'apr' in real_apr_info:
-                apr_value = real_apr_info['apr']
-            else:
-                apr_value = info.get("apr")
-
-            if apr_value is None:
-                await interaction.followup.send("❌ Could not retrieve APR data for this pool.")
-                return
-
-            earnings = simulate_apr_apy(
-                apr_value,
-                info["volume_usd"],
-                info["liquidity_usd"]
-            )
-
-            if earnings is None:
-                await interaction.followup.send("❌ An error occurred: APR calculation failed.")
-                return
-
-            range_msg = (
-                f"**📈 Recommended LP Range:**\n"
-                f"`$ {format_small_number(price_range['lower'])}` — `$ {format_small_number(price_range['upper'])}`\n"
-                f"*Confidence: {price_range['confidence']}*"
-            ) if price_range else "Could not determine a stable price range."
-
-            earnings_msg = (
-                f"**💸 Simulated Earnings for $100 Deposit**\n\n"
-                f"**APR Return:**\n"
-                f"• Daily: `$ {earnings['apr_return_usd']['daily']}`\n"
-                f"• Monthly: `$ {earnings['apr_return_usd']['monthly']}`\n"
-                f"• Yearly: `$ {earnings['apr_return_usd']['yearly']}`\n\n"
-                f"**APY (Compounded):**\n"
-                f"• Daily: `{earnings['apy_percent']['daily']}%`\n"
-                f"• Monthly: `{earnings['apy_percent']['monthly']}%`\n"
-                f"• Yearly: `{earnings['apy_percent']['yearly']}%`"
-            )
-
-            msg = (
-                f"**🧘 ZenPool Analysis Complete!**\n\n"
-                f"**Pair:** {info['pair']}\n"
-                f"**Network:** {info['network']}\n"
-                f"**DEX:** {info['dex']}\n"
-                f"**Current Price:** `$ {format_small_number(float(info['price_usd']))}`\n"
-                f"**24h Volume:** `$ {float(info['volume_usd']):,.2f}`\n"
-                f"**Liquidity:** `$ {float(info['liquidity_usd']):,.2f}`\n\n"
-                f"{real_apr_line}\n\n"
-                f"{range_msg}\n\n"
-                f"{earnings_msg}\n\n"
-                f"*Note: gas fees and impermanent loss are not included.*"
-            )
-
-            await interaction.followup.send(msg)
-
-        except Exception as e:
-            logger.error(f"ZenPool Error: {e}")
-            await interaction.followup.send("❌ An unexpected error occurred during analysis.")
+        super().__init__(
+            name="generate",
+            description="Analyze a pair and simulate LP returns",
+            callback=callback,
+        )
+        self.autocomplete = {"network": network_autocomplete}
