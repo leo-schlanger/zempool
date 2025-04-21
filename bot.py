@@ -3,7 +3,7 @@ from discord.ext import commands
 import os
 import logging
 from dotenv import load_dotenv
-from commands import ZenPoolCommands
+from commands import ZenPoolGroup
 from keep_alive import keep_alive
 
 logging.basicConfig(level=logging.INFO)
@@ -24,7 +24,7 @@ tree = bot.tree
 async def on_ready():
     logger.info(f"ZenPool is online as {bot.user}")
     try:
-        tree.add_command(ZenPoolCommands())
+        tree.add_command(ZenPoolGroup())
         synced = await tree.sync()
         logger.info(f"Synced {len(synced)} commands")
     except Exception as e:

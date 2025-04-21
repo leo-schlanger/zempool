@@ -11,12 +11,16 @@ logger = logging.getLogger("ZenPool")
 
 async def network_autocomplete(interaction: discord.Interaction, current: str):
     try:
-        return [app_commands.Choice(name=net, value=net) for net in SUPPORTED_NETWORKS if current.lower() in net.lower()][:25]
+        return [
+            app_commands.Choice(name=net, value=net)
+            for net in SUPPORTED_NETWORKS
+            if current.lower() in net.lower()
+        ][:25]
     except Exception as e:
         logger.error(f"Autocomplete error: {e}")
         return []
 
-class ZenPoolCommands(app_commands.Group):
+class ZenPoolGroup(app_commands.Group):
     def __init__(self):
         super().__init__(name="zenpool", description="ZenPool commands")
 
@@ -40,7 +44,7 @@ class ZenPoolCommands(app_commands.Group):
             return
 
         try:
-            info = fetch_pool_data(f"{network}/{pair}")
+            info = fetch_pool_data(network, pair)
             if isinstance(info, str):
                 await interaction.followup.send(info)
                 return
@@ -75,8 +79,8 @@ class ZenPoolCommands(app_commands.Group):
                 return
 
             range_msg = (
-                f"**📈 Recommended LP Range:**  \n"
-                f"`$ {format_small_number(price_range['lower'])}` — `$ {format_small_number(price_range['upper'])}`  \n"
+                f"**📈 Recommended LP Range:**\n"
+                f"`$ {format_small_number(price_range['lower'])}` — `$ {format_small_number(price_range['upper'])}`\n"
                 f"*Confidence: {price_range['confidence']}*"
             ) if price_range else "Could not determine a stable price range."
 
@@ -99,7 +103,7 @@ class ZenPoolCommands(app_commands.Group):
                 f"**DEX:** {info['dex']}\n"
                 f"**Current Price:** `$ {format_small_number(float(info['price_usd']))}`\n"
                 f"**24h Volume:** `$ {float(info['volume_usd']):,.2f}`\n"
-                f"**Liquidity:** `$ {float(info['liquidity_usd']):,.2f}`\n"
+                f"**Liquidity:** `$ {float(info['liquidity_usd']):,.2f}`\n\n"
                 f"{real_apr_line}\n\n"
                 f"{range_msg}\n\n"
                 f"{earnings_msg}\n\n"
