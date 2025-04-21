@@ -5,11 +5,14 @@ import os
 import logging
 from commands.generate import ZenPoolCommands
 from commands.help import HelpCommand
+from keep_alive import keep_alive
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ZenPool")
 
 load_dotenv()
+keep_alive()
+
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 intents = discord.Intents.default()
@@ -28,4 +31,5 @@ async def on_ready():
     except Exception as e:
         logger.error(f"Error syncing commands: {e}")
 
+keep_alive()
 bot.run(TOKEN)
