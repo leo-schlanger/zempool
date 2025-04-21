@@ -1,5 +1,7 @@
+
 SUPPORTED_NETWORKS = [
-    "ethereum", "bsc", "polygon", "arbitrum", "optimism", "base", "avalanche",
-    "fantom", "solana", "cronos", "zksync", "mantle", "linea", "celo",
-    "moonbeam", "moonriver", "harmony", "blast", "sonic", "scroll", "berachain", "monad"
+    "ethereum", "solana", "base", "bsc", "polygon", "arbitrum",
+    "optimism", "avalanche", "cronos", "zksync", "fantom",
+    "mantle", "linea", "celo", "moonbeam", "moonriver",
+    "harmony", "blast", "sonic", "scroll", "berachain", "monad"
 ]
