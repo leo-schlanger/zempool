@@ -10,6 +10,19 @@ import logging
 
 logger = logging.getLogger("ZenPool")
 
+SYMBOL_MAP = {
+    "sol": "solana",
+    "eth": "ethereum",
+    "btc": "bitcoin",
+    "usdc": "usd-coin",
+    "usdt": "tether",
+    "avax": "avalanche-2",
+    "op": "optimism",
+    "arb": "arbitrum",
+    "matic": "polygon",
+    "link": "chainlink"
+}
+
 class GenerateCommand(app_commands.Command):
     def __init__(self):
         super().__init__(
@@ -48,13 +61,23 @@ class GenerateCommand(app_commands.Command):
                 await interaction.followup.send("❌ Could not calculate APR.")
                 return
 
-            prices = fetch_closing_prices(info["pair"].split("/")[0].lower())
-            price_range_quantiles = quantiles(prices, n=100)
-            price_range = {
-                "lower": round(price_range_quantiles[10], 4),
-                "upper": round(price_range_quantiles[90], 4),
-                "confidence": "approx. 80% of price action (quantile based)"
-            }
+            base_token = info["pair"].split("/")[0].lower()
+            symbol = SYMBOL_MAP.get(base_token, base_token)
+            prices = fetch_closing_prices(symbol)
+
+            if len(prices) >= 10:
+                price_range_quantiles = quantiles(prices, n=100)
+                price_range = {
+                    "lower": round(price_range_quantiles[10], 4),
+                    "upper": round(price_range_quantiles[90], 4),
+                    "confidence": "approx. 80% of price action (quantile based)"
+                }
+            else:
+                price_range = {
+                    "lower": info["price_usd"],
+                    "upper": info["price_usd"],
+                    "confidence": "⚠️ Not enough data for range"
+                }
 
             apr_daily = round(apr_value / 365, 4)
             apr_weekly = round(apr_value / 52, 4)
