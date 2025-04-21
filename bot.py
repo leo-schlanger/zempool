@@ -4,7 +4,6 @@ from discord import app_commands
 import os
 import logging
 from dotenv import load_dotenv
-from keep_alive import keep_alive
 
 from utils.fetch_pool import fetch_pool_data
 from utils.chart_analysis import get_historical_prices_stub, suggest_price_range
@@ -14,8 +13,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ZenPool")
 
 load_dotenv()
-keep_alive()
-
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="/", intents=intents)
@@ -50,7 +47,7 @@ class ZenPoolCommands(app_commands.Group):
 
         prices = get_historical_prices_stub(float(info["price_usd"]))
         price_range = suggest_price_range(prices)
-        earnings = simulate_apr_apy(info["apr"])
+        earnings = simulate_apr_apy(info["apr"], info["volume_usd"], info["liquidity_usd"])
 
         range_msg = (
             f"**📈 Recommended LP Range:**  \n"
@@ -90,13 +87,13 @@ class ZenPoolCommands(app_commands.Group):
     async def help(self, interaction: discord.Interaction):
         logger.info("Received /zenpool help command.")
         await interaction.response.send_message(
-              "**ZenPool Bot Help 🧘**\n\n"
+            "**ZenPool Bot Help 🧘**\n\n"
             "Use `/zenpool generate <network> <pair>` to analyze a pool.\n"
             "Start typing a network name and use auto-complete suggestions.\n"
-            "Example: `/zenpool generate sonic 0x...`\n\n"
-            "🔍 **How APR and APY are calculated:**\n"
-            "- **APR Estimated**: calculated from 24h volume and pool liquidity, assuming 0.3% trading fees.\n"
-            "- **APR Real**: pulled from Beefy if matched by address.\n"
+            "Example: `/zenpool generate sonic 0x...`"
+            "🔍 **How APR and APY are calculated:**"
+            "- **APR Estimated**: calculated from 24h volume and pool liquidity, assuming 0.3% trading fees."
+            "- **APR Real**: pulled from Beefy, Velodrome, or Thena if matched by address."
             "- **APY**: compounded version of the APR, calculated daily/monthly/yearly."
         )
 
@@ -110,5 +107,4 @@ async def on_ready():
     except Exception as e:
         logger.error(f"Error syncing commands: {e}")
 
-keep_alive()
 bot.run(TOKEN)
