@@ -4,11 +4,14 @@ from dotenv import load_dotenv
 import os
 import logging
 from commands import ZenPoolCommands
+from keep_alive import keep_alive
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ZenPool")
 
 load_dotenv()
+keep_alive()
+
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 intents = discord.Intents.default()
@@ -21,5 +24,6 @@ async def on_ready():
 
 tree.add_command(ZenPoolCommands())
 
+keep_alive()
 if __name__ == "__main__":
     bot.run(TOKEN)
