@@ -9,24 +9,28 @@ def fetch_pool_data(url):
         response = requests.get(api_url)
 
         if response.status_code != 200:
-            return "❌ Error accessing API: 404"
+            return f"❌ Error accessing API: {response.status_code} — {response.reason}"
 
         data = response.json().get("pair")
         if not data:
             return "❌ Could not fetch data for this pair."
 
-        base_token = data["baseToken"]
-        quote_token = data["quoteToken"]
+        base_token = data.get("baseToken")
+        quote_token = data.get("quoteToken")
         token0 = data.get("token0")
-        token1 = data.get("token1")
+
+        if not base_token or not quote_token or not token0 or "priceNative" not in data:
+            return "❌ Invalid pool data received from API."
 
         base_symbol = base_token.get("symbol", "BASE")
         quote_symbol = quote_token.get("symbol", "QUOTE")
 
         price_native = float(data["priceNative"])
-        # Corrigir inversão: se base != token0, inverter
         if base_token["address"].lower() != token0["address"].lower():
             price_native = 1 / price_native
+
+        apr_value = data.get("farmed", {}).get("apr")
+        apr = apr_value if apr_value not in [None, "N/A"] else "Estimated"
 
         return {
             "pair": f"{base_symbol}/{quote_symbol}",
@@ -35,7 +39,7 @@ def fetch_pool_data(url):
             "price_usd": price_native,
             "volume_usd": data.get("volume", {}).get("h24", 0),
             "liquidity_usd": data.get("liquidity", {}).get("usd", 0),
-            "apr": data.get("farmed", {}).get("apr", "N/A"),
+            "apr": apr
         }
 
     except Exception as e:

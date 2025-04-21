@@ -15,8 +15,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ZenPool")
 
 load_dotenv()
-keep_alive()
+keep_alive(
 
+)
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="/", intents=intents)
@@ -29,11 +30,15 @@ SUPPORTED_NETWORKS = [
 ]
 
 async def network_autocomplete(interaction: discord.Interaction, current: str):
-    return [
-        app_commands.Choice(name=net, value=net)
-        for net in SUPPORTED_NETWORKS
-        if current.lower() in net.lower()
-    ][:25]
+    try:
+        return [
+            app_commands.Choice(name=net, value=net)
+            for net in SUPPORTED_NETWORKS
+            if current.lower() in net.lower()
+        ][:25]
+    except Exception as e:
+        logger.error(f"Autocomplete error: {e}")
+        return []
 
 class ZenPoolCommands(app_commands.Group):
     @app_commands.command(name="generate", description="Analyze a pair and simulate LP returns")
@@ -41,7 +46,12 @@ class ZenPoolCommands(app_commands.Group):
     @app_commands.autocomplete(network=network_autocomplete)
     async def generate(self, interaction: discord.Interaction, network: str, pair: str):
         try:
-            await interaction.response.defer()
+            try:
+                await interaction.response.defer()
+            except Exception as e:
+                logger.error(f"Defer error: {e}")
+                return
+
             logger.info(f"Running analysis for network={network}, pair={pair}")
 
             dex_url = f"https://dexscreener.com/{network}/{pair}"
