@@ -1,10 +1,10 @@
-
 import discord
 from discord import app_commands
 from config.supported_networks import SUPPORTED_NETWORKS
 from utils.fetch_pool import fetch_pool_data
 from utils.simulate_earnings import simulate_apr_apy, format_small_number
-from utils.chart_analysis import fetch_closing_prices, suggest_price_range
+from utils.chart_analysis import fetch_closing_prices
+from statistics import quantiles
 from external_aprs.unified_apr import get_best_real_apr
 import logging
 
@@ -49,7 +49,15 @@ class GenerateCommand(app_commands.Command):
                 return
 
             prices = fetch_closing_prices(info["pair"].split("/")[0].lower())
-            price_range = suggest_price_range(prices)
+            price_range_quantiles = quantiles(prices, n=100)
+            price_range = {
+                "lower": round(price_range_quantiles[10], 4),
+                "upper": round(price_range_quantiles[90], 4),
+                "confidence": "approx. 80% of price action (quantile based)"
+            }
+
+            apr_daily = round(apr_value / 365, 4)
+            apr_weekly = round(apr_value / 52, 4)
 
             msg = f"""**🧘 ZenPool Analysis Complete!**\n
 **Pair:** {info['pair']}
@@ -59,6 +67,7 @@ class GenerateCommand(app_commands.Command):
 **Volume:** `$ {info['volume_usd']:,.2f}`
 **Liquidity:** `$ {info['liquidity_usd']:,.2f}`
 **APR:** {apr_value}%\n
+**APR Estimates:**\n• Daily: {apr_daily}%\n• Weekly: {apr_weekly}%\n• Yearly: {apr_value}%\n
 **Range:** `$ {format_small_number(price_range['lower'])}` - `$ {format_small_number(price_range['upper'])}`\n
 *Note: Gas and IL not included.*"""
 
