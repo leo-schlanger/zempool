@@ -3,7 +3,7 @@ from discord import app_commands
 from config.supported_networks import SUPPORTED_NETWORKS
 from utils.fetch_pool import fetch_pool_data
 from utils.simulate_earnings import simulate_apr_apy, format_small_number
-from utils.chart_analysis import get_historical_prices_stub, suggest_price_range
+from utils.chart_analysis import fetch_closing_prices, suggest_price_range
 from external_aprs.unified_apr import get_best_real_apr
 import logging
 
@@ -17,6 +17,9 @@ async def network_autocomplete(interaction: discord.Interaction, current: str):
         return []
 
 class ZenPoolCommands(app_commands.Group):
+    def __init__(self):
+        super().__init__(name="zenpool", description="ZenPool commands")
+
     @app_commands.command(name="generate", description="Analyze a pair and simulate LP returns")
     @app_commands.describe(network="Blockchain network", pair="Pair address (contract)")
     @app_commands.autocomplete(network=network_autocomplete)
@@ -48,11 +51,21 @@ class ZenPoolCommands(app_commands.Group):
                 if real_apr_info else "🧠 No farming APR found. Estimated only from trading volume."
             )
 
-            prices = get_historical_prices_stub(float(info["price_usd"]))
+            prices = fetch_closing_prices(info["pair"].split("/")[0].lower())
             price_range = suggest_price_range(prices)
 
+            apr_value = None
+            if real_apr_info and 'apr' in real_apr_info:
+                apr_value = real_apr_info['apr']
+            else:
+                apr_value = info.get("apr")
+
+            if apr_value is None:
+                await interaction.followup.send("❌ Could not retrieve APR data for this pool.")
+                return
+
             earnings = simulate_apr_apy(
-                real_apr_info['apr'] if real_apr_info else info["apr"],
+                apr_value,
                 info["volume_usd"],
                 info["liquidity_usd"]
             )
