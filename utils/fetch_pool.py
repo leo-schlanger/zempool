@@ -1,35 +1,50 @@
 import requests
+import logging
+
+logger = logging.getLogger("ZenPool")
 
 def fetch_pool_data(network: str, pair_address: str):
     try:
-        api_url = f"https://api.dexscreener.com/latest/dex/pairs/{network}/{pair_address}"
-        response = requests.get(api_url, timeout=10)
+        url = f"https://api.dexscreener.com/latest/dex/pairs/{network}/{pair_address}"
+        logger.info(f"[fetch_pool_data] Requesting: {url}")
+        
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
 
-        if response.status_code != 200:
-            return f"❌ Error accessing API: {response.status_code}"
-
-        pair_data = response.json().get("data")
-        if not pair_data:
+        if not data or "pair" not in data or not data["pair"]:
+            logger.warning(f"[fetch_pool_data] No 'pair' found in response for {network}/{pair_address}")
             return "❌ Could not fetch data for this pair."
 
-        base_token = pair_data.get("baseToken", {})
-        quote_token = pair_data.get("quoteToken", {})
-        token0 = pair_data.get("token0", {})
-        token1 = pair_data.get("token1", {})
+        pair = data["pair"]
 
-        price_native = float(pair_data.get("priceNative", 0))
-        if token0 and base_token.get("address", "").lower() != token0.get("address", "").lower():
-            price_native = 1 / price_native if price_native != 0 else 0
+        price_usd = float(pair.get("priceUsd", 0))
+        volume_24h = float(pair.get("volume", {}).get("h24", 0))
+        liquidity_usd = float(pair.get("liquidity", {}).get("usd", 1))  # avoid division by zero
 
-        return {
-            "pair": f"{base_token.get('symbol', 'BASE')}/{quote_token.get('symbol', 'QUOTE')}",
-            "network": pair_data.get("chainId", network),
-            "dex": pair_data.get("dexId", "unknown"),
-            "price_usd": price_native,
-            "volume_usd": pair_data.get("volume", {}).get("h24", 0),
-            "liquidity_usd": pair_data.get("liquidity", {}).get("usd", 0),
-            "apr": pair_data.get("farmed", {}).get("apr", "N/A"),
+        estimated_apr = round((volume_24h * 0.003 / liquidity_usd) * 365 * 100, 2)
+
+        result = {
+            "pair": f"{pair['baseToken']['symbol']}/{pair['quoteToken']['symbol']}",
+            "network": pair["chainId"],
+            "dex": pair["dexId"],
+            "price_usd": price_usd,
+            "volume_usd": volume_24h,
+            "liquidity_usd": liquidity_usd,
+            "apr": estimated_apr
         }
 
+        logger.info(f"[fetch_pool_data] Successfully fetched: {result}")
+        return result
+
+    except requests.exceptions.Timeout:
+        logger.error(f"[fetch_pool_data] Timeout when requesting {network}/{pair_address}")
+        return "❌ Request timed out. Try again later."
+
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"[fetch_pool_data] HTTP error: {http_err}")
+        return f"❌ HTTP error occurred: {http_err}"
+
     except Exception as e:
-        return f"❌ An error occurred: {str(e)}"
+        logger.exception(f"[fetch_pool_data] Unexpected error fetching data: {e}")
+        return "❌ Could not fetch data for this pair."

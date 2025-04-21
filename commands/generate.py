@@ -10,6 +10,7 @@ import logging
 logger = logging.getLogger("ZenPool")
 
 async def network_autocomplete(interaction: discord.Interaction, current: str):
+    logger.info("Autocomplete triggered for network with current input: %s", current)
     return [
         app_commands.Choice(name=net, value=net)
         for net in SUPPORTED_NETWORKS if current.lower() in net.lower()
