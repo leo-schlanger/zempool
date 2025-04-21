@@ -15,7 +15,7 @@ def fetch_closing_prices(symbol: str):
         print(f"[Chart Fetch Error] {e}")
         return []
 
-def get_support_resistance_zones(symbol: str, interval_days: int = 90, bucket_size: float = 1.0):
+def get_support_resistance_zones(symbol: str, interval_days: int = 90, bucket_size: float = 0.25):
     try:
         response = requests.get(
             f"https://api.coingecko.com/api/v3/coins/{symbol}/market_chart",
@@ -26,26 +26,32 @@ def get_support_resistance_zones(symbol: str, interval_days: int = 90, bucket_si
         closes = [price[1] for price in data["prices"]]
 
         if len(closes) < 10:
+            print("[Zone Calc] Not enough data.")
             return None
 
-        # Agrupar fechamentos em buckets
+        # Bucketização com maior precisão
         bucketed = [round(price // bucket_size * bucket_size, 2) for price in closes]
         frequency = Counter(bucketed)
 
-        # Garantir que temos pelo menos dois buckets diferentes
-        distinct_buckets = sorted(frequency.items(), key=lambda x: (-x[1], x[0]))
-        distinct = []
-        for bucket, count in distinct_buckets:
-            if all(abs(bucket - b[0]) >= 0.5 for b in distinct):
-                distinct.append((bucket, count))
-            if len(distinct) == 2:
+        # Ordena por frequência e depois por distância
+        sorted_buckets = sorted(frequency.items(), key=lambda x: (-x[1], x[0]))
+
+        # Garante dois buckets diferentes
+        selected = []
+        for bucket, count in sorted_buckets:
+            if all(abs(bucket - b[0]) >= bucket_size for b in selected):
+                selected.append((bucket, count))
+            if len(selected) == 2:
                 break
 
-        if len(distinct) < 2:
+        if len(selected) < 2:
+            print("[Zone Calc] Could not find two distinct support/resistance zones.")
             return None
 
-        support = min(distinct[0][0], distinct[1][0])
-        resistance = max(distinct[0][0], distinct[1][0])
+        support = min(selected[0][0], selected[1][0])
+        resistance = max(selected[0][0], selected[1][0])
+
+        print(f"[Zone Calc] Selected zones: Support = {support}, Resistance = {resistance}")
 
         return {
             "support": support,
