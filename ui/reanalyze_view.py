@@ -1,6 +1,6 @@
-
 import discord
 from discord.ext import commands
+from commands.generate import analyze_pair
 import logging
 
 logger = logging.getLogger("ZenPool")
@@ -16,8 +16,8 @@ class ReanalyzeView(discord.ui.View):
     async def reanalyze_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         logger.info(f"[BUTTON] Reanalyze triggered for {self.network} / {self.pair}")
         try:
-            command = self.bot.tree.get_command("generate")
-            await command.callback(interaction, network=self.network, pair=self.pair)
+            await interaction.response.defer(thinking=True)
+            await analyze_pair(interaction, self.network, self.pair)
         except Exception as e:
             logger.error(f"[BUTTON] Reanalyze failed: {e}")
-            await interaction.response.send_message("❌ Could not reanalyze.", ephemeral=True)
+            await interaction.followup.send("❌ Could not reanalyze.", ephemeral=True)
