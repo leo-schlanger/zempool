@@ -1,3 +1,4 @@
+# utils/response.py
 import discord
 import logging
 from utils.simulate_earnings import simulate_apr_apy, format_small_number
@@ -54,8 +55,4 @@ async def send_analysis_result(interaction, info, network, pair, apr_value, pric
     )
     embed.set_footer(text="Note: Gas fees and IL (Impermanent Loss) not included.")
 
-    await interaction.followup.send(
-        embed=embed,
-        file=discord.File(chart_result) if chart_result else None,
-        view=ReanalyzeView(interaction.client, network, pair)
-    )
+    await interaction.followup.send(embed=embed, file=discord.File(chart_result) if chart_result else None, view=ReanalyzeView(interaction.client, network, pair))
