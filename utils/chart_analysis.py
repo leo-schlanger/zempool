@@ -69,31 +69,36 @@ import matplotlib.dates as mdates
 from datetime import datetime
 import os
 
-def generate_range_chart(candles, range_min, range_max, chart_path):
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-    import datetime
+def generate_range_chart(candles: list[dict], min_range: float, max_range: float, filename: str) -> str:
+    dates = [datetime.fromtimestamp(int(c['t']) // 1000) for c in candles if c.get('c')]
+    prices = [float(c['c']) for c in candles if c.get('c')]
 
-    if not candles:
+    if not dates or not prices:
         return None
 
-    dates = [datetime.datetime.fromtimestamp(int(candle["timestamp"]) / 1000) for candle in candles]
-    closes = [float(candle["close"]) for candle in candles]
-
     plt.figure(figsize=(8, 4))
-    min_range = range_min
-    max_range = range_max
+    plt.plot(dates, prices, linewidth=1.2, label="Close Price", color="black")
+    plt.axhline(min_range, color="green", linestyle="--", linewidth=1, label="Range Min")
+    plt.axhline(max_range, color="red", linestyle="--", linewidth=1, label="Range Max")
+    # Faixa de range com fundo leve
     plt.axhspan(min_range, max_range, facecolor='purple', alpha=0.1)
-    plt.plot(dates, closes, label="Close Price", linewidth=1.5)
+    plt.plot(dates, min_range, max_range, color="yellow", alpha=0.15, label="Range Zone")
 
-    plt.title("Price vs Suggested Range")
-    plt.legend()
-    plt.xticks(rotation=30)
-    plt.grid(True, linestyle="--", linewidth=0.5, alpha=0.6)
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+    plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
+
+    plt.xticks(rotation=45, fontsize=8)
+    plt.yticks(fontsize=8)
+    plt.grid(False)
+    plt.title("Price vs Suggested Range", fontsize=10)
     plt.tight_layout()
-    plt.savefig(chart_path)
+    plt.legend(fontsize=7, loc='upper left')
+
+    if not filename.endswith(".png"):
+        filename += ".png"
+    plt.savefig(filename, dpi=150)
     plt.close()
-    return chart_path
+    return filename
 
 
 def validate_candles(candles):

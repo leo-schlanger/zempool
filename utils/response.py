@@ -1,4 +1,3 @@
-# utils/response.py
 import discord
 import logging
 from utils.simulate_earnings import simulate_apr_apy, format_small_number
