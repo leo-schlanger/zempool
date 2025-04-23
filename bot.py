@@ -7,6 +7,7 @@ import logging
 from dotenv import load_dotenv
 from commands import ZenPoolGroup
 from keep_alive import keep_alive
+from ui.reanalyze_view import ReanalyzeView
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ZenPool")
@@ -22,6 +23,7 @@ tree = bot.tree
 
 @bot.event
 async def on_ready():
+    bot.add_view(ReanalyzeView(bot, network='placeholder', pair='placeholder'))
     logger.info(f"ZenPool is online as {bot.user}")
     tree.add_command(ZenPoolGroup())
     await tree.sync()
