@@ -96,3 +96,8 @@ def generate_range_chart(candles: list[dict], min_range: float, max_range: float
     plt.savefig(filename, dpi=150)
     plt.close()
     return filename
+
+
+def validate_candles(candles):
+    return isinstance(candles, list) and all('close' in c for c in candles)
+
