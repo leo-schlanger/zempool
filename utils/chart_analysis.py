@@ -62,3 +62,37 @@ def get_support_resistance_zones(symbol: str, interval_days: int = 90, bucket_si
     except Exception as e:
         print(f"[Support/Resistance Error] {e}")
         return None
+
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from datetime import datetime
+import os
+
+def generate_range_chart(candles: list[dict], min_range: float, max_range: float, filename: str) -> str:
+    dates = [datetime.fromtimestamp(int(c['t']) // 1000) for c in candles if c.get('c')]
+    prices = [float(c['c']) for c in candles if c.get('c')]
+
+    if not dates or not prices:
+        return None
+
+    plt.figure(figsize=(8, 4))
+    plt.plot(dates, prices, linewidth=1.2, label="Close Price", color="black")
+    plt.axhline(min_range, color="green", linestyle="--", linewidth=1, label="Range Min")
+    plt.axhline(max_range, color="red", linestyle="--", linewidth=1, label="Range Max")
+    plt.fill_between(dates, min_range, max_range, color="yellow", alpha=0.15, label="Range Zone")
+
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+    plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
+
+    plt.xticks(rotation=45, fontsize=8)
+    plt.yticks(fontsize=8)
+    plt.grid(False)
+    plt.title("Price vs Suggested Range", fontsize=10)
+    plt.tight_layout()
+    plt.legend(fontsize=7, loc='upper left')
+
+    if not filename.endswith(".png"):
+        filename += ".png"
+    plt.savefig(filename, dpi=150)
+    plt.close()
+    return filename
