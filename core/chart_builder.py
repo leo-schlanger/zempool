@@ -104,3 +104,11 @@ def generate_range_chart(candles: list[dict], min_range: float, max_range: float
 def validate_candles(candles):
     return isinstance(candles, list) and all('close' in c for c in candles)
 
+
+import numpy as np
+
+def get_range_coverage_ratio(prices, lower, upper):
+    if not prices:
+        return 1.0
+    inside_range = [p for p in prices if lower <= p <= upper]
+    return len(inside_range) / len(prices) if prices else 1.0
