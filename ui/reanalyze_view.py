@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from utils.analyze import analyze_pair
+from handlers.interaction_handlers import analyze_pair
 import logging
 
 logger = logging.getLogger("ZenPool")

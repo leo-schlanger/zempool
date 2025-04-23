@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 from config.supported_networks import SUPPORTED_NETWORKS
-from utils.analyze import analyze_pair
+from handlers.interaction_handlers import analyze_pair
 import logging
 
 logger = logging.getLogger("ZenPool")
