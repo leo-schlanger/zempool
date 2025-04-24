@@ -21,9 +21,13 @@ tree = bot.tree
 @bot.event
 async def on_ready():
     logger.info(f"ZenPool is online as {bot.user}")
-    tree.add_command(ZenPoolGroup())
-    await tree.sync()
-    logger.info("Commands synced.")
+    try:
+        await tree.clear_commands(guild=None)  
+        tree.add_command(ZenPoolGroup())       
+        synced = await tree.sync()             
+        logger.info(f"✅ Synced {len(synced)} commands.")
+    except Exception as e:
+        logger.error(f"[SYNC ERROR] {e}")
 
 keep_alive()
 if __name__ == "__main__":
