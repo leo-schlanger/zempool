@@ -21,7 +21,7 @@ async def analyze_pair(interaction: discord.Interaction, network: str, pair: str
             return
 
         logger.info(f"[APR] fee_rate: {info.get('fee_rate', 0.003)}")
-        fee_rate = info.get("fee_rate", 0.003)
+        fee_rate = float(info.get("fee_rate", 0.003))
         apr_value = round((info["volume_usd"] / info["liquidity_usd"]) * fee_rate * 365 * 100 * 0.75, 2) if info["volume_usd"] > 0 and info["liquidity_usd"] > 0 else 0
         logger.info(f"[APR] Calculated: {apr_value}%")
 
