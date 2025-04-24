@@ -3,7 +3,6 @@ logger = logging.getLogger("response")
 logger.setLevel(logging.DEBUG)
 import discord
 from core.apr import simulate_apr_apy, format_small_number
-from core.chart_builder import generate_range_chart, get_range_coverage_ratio
 
 async def send_analysis_result(interaction, info, network, pair, apr_value, price_range, closes, candles):
     if info["liquidity_usd"] < 5000:

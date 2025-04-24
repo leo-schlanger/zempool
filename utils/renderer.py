@@ -1,8 +1,6 @@
 import discord
 import logging
 from core.apr import simulate_apr_apy, format_small_number
-from core.chart_builder import generate_range_chart
-from core.chart_density import get_range_coverage_ratio
 
 logger = logging.getLogger("renderer")
 

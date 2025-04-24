@@ -17,16 +17,22 @@ def fetch_pool_data(network: str, pair_address: str):
             logger.warning("[fetch_pool_data] Invalid response structure or missing token info")
             return "❌ Could not fetch data for this pair."
 
-        logger.debug(f"[fetch_pool_data] Raw volume: {pair.get('volume')}, liquidity: {pair.get('liquidity')}")
+        price_usd = float(pair.get("priceUsd", 0))
+        volume_usd = float(pair.get("volume", {}).get("h24", 0))
+        liquidity_usd = float(pair.get("liquidity", {}).get("usd", 0))
+        fee_rate = float(pair.get("fee", 0.003))
+
+        if volume_usd == 0 or liquidity_usd == 0 or fee_rate == 0:
+            return "❌ APR cannot be estimated: No fee, volume or liquidity"
 
         return {
             "pair": f"{pair['baseToken']['symbol']}/{pair['quoteToken']['symbol']}",
             "network": pair.get("chainId", network),
             "dex": pair.get("dexId", "unknown"),
-            "price_usd": float(pair.get("priceUsd", 0)),
-            "volume_usd": float(pair.get("volume', {}).get('h24", 0)),
-            "liquidity_usd": float(pair.get("liquidity", {}).get("usd", 0)),
-            "fee_rate": float(pair.get("fee", 0.003)),  # fallback padrão
+            "price_usd": price_usd,
+            "volume_usd": volume_usd,
+            "liquidity_usd": liquidity_usd,
+            "fee_rate": fee_rate
         }
 
     except Exception as e:
