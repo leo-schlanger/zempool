@@ -4,7 +4,7 @@ from core.chart_builder import fetch_closing_prices
 from core.price_density import get_range_by_density_dexscreener
 from core.fallback import fetch_candles_fallback
 from services.fetch_pool_data import fetch_pool_data
-from handlers.response import send_analysis_result
+from utils.renderer import send_analysis_result
 
 logger = logging.getLogger("ZenPool")
 
