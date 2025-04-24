@@ -22,6 +22,7 @@ tree = bot.tree
 async def on_ready():
     logger.info(f"ZenPool is online as {bot.user}")
     try:
+        await tree.clear_commands()
         tree.add_command(ZenPoolGroup())  # Corrigido: adicionar comandos ANTES do sync
         synced = await tree.sync()
         logger.info(f"✅ Synced {len(synced)} commands.")

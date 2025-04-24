@@ -33,7 +33,9 @@ async def analyze_pair(interaction: discord.Interaction, network: str, pair: str
         
         # Fallback volume-based range simulation (replaces density-based chart analysis)
         spread_pct = 0.01 if info["volume_usd"] > 100_000 else 0.02 if info["volume_usd"] > 10_000 else 0.03
-        price = info["price_usd"]
+        token0_price = float(info.get("token0_price", 0))
+        token1_price = float(info.get("token1_price", 1)) or 1  # fallback para evitar divisão por zero
+        price = token0_price / token1_price
         price_range = {
             "lower": round(price * (1 - spread_pct), 4),
             "upper": round(price * (1 + spread_pct), 4),
