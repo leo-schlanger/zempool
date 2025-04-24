@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("keep_alive")
+logger.setLevel(logging.DEBUG)
 from flask import Flask
 from threading import Thread
 

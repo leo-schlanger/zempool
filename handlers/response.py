@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("response")
+logger.setLevel(logging.DEBUG)
 import discord
 from core.apr import simulate_apr_apy, format_small_number
 from ui.reanalyze_view import ReanalyzeView

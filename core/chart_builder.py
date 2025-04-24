@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("chart_builder")
+logger.setLevel(logging.DEBUG)
 import requests
 from collections import Counter
 

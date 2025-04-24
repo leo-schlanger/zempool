@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("apr")
+logger.setLevel(logging.DEBUG)
 def simulate_apr_apy(apr, volume, liquidity, capital=1000):
     try:
         # Conversão segura para float

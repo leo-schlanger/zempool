@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("chart_density")
+logger.setLevel(logging.DEBUG)
 def get_range_coverage_ratio(closes, lower, upper):
     if not closes or not isinstance(closes, list):
         return 0.0

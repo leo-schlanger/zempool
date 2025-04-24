@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("group")
+logger.setLevel(logging.DEBUG)
 from discord import app_commands
 from .generate import GenerateCommand
 from .help import HelpCommand

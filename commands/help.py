@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("help")
+logger.setLevel(logging.DEBUG)
 import discord
 from discord import app_commands
 
