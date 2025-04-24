@@ -4,7 +4,7 @@ from collections import defaultdict
 
 logger = logging.getLogger("ZenPool")
 
-def get_range_by_density_dexscreener(network: str, pair_address: str, interval: str = "4h", days: int = 90) -> tuple | None:
+def get_range_by_density_dexscreener(network: str, pair_address: str, interval: str = "4h", days: int = 14) -> tuple | None:
     try:
         url = f"https://api.dexscreener.com/latest/dex/pairs/{network}/{pair_address}/chart?interval={interval}"
         logger.info(f"[price_density] Fetching candles from: {url}")
@@ -17,35 +17,44 @@ def get_range_by_density_dexscreener(network: str, pair_address: str, interval: 
             logger.warning("[price_density] Not enough candle data.")
             return None
 
-        # Converter e filtrar os últimos `days` dias de candles
-        candles_filtered = candles[-(days * 6):]  # 6 candles de 4h por dia
+        candles_filtered = candles[-(days * 6):]  # 6 candles por dia (4h)
 
-        bucket_size_pct = 0.01  # 1% buckets
         buckets = defaultdict(int)
+        prices = []
 
         for c in candles_filtered:
-            high = float(c.get("h", 0))
-            low = float(c.get("l", 0))
-            if high == 0 or low == 0:
+            close = float(c.get("c", 0))
+            if close == 0:
                 continue
-            avg_price = (high + low) / 2
-            bucket_key = round(avg_price, 4)
+            prices.append(close)
+            bucket_key = round(close, 4)
             buckets[bucket_key] += 1
 
         if not buckets:
             logger.warning("[price_density] Bucket calculation failed.")
             return None
 
-        # Encontrar os buckets mais densos
+        # Ordenar por densidade
         sorted_buckets = sorted(buckets.items(), key=lambda x: x[1], reverse=True)
-        top = sorted_buckets[:5]
-        prices = [p[0] for p in top]
-        min_range = round(min(prices), 4)
-        max_range = round(max(prices), 4)
 
-        logger.info(f"[price_density] Range found: {min_range} - {max_range}")
-        return (min_range, max_range)
+        # Pegar os N mais densos e garantir que o preço atual esteja dentro
+        top_n = 20
+        top_prices = [b[0] for b in sorted_buckets[:top_n]]
+
+        # Calcular range incluindo o preço atual
+        current_price = prices[-1]
+        logger.info(f"[price_density] Current price: {current_price}")
+        surrounding = [p for p in top_prices if abs(p - current_price) / current_price <= 0.2]
+
+        if not surrounding:
+            logger.warning("[price_density] No dense buckets near current price. Returning fallback.")
+            return None
+
+        range_lower = round(min(surrounding), 4)
+        range_upper = round(max(surrounding), 4)
+
+        return (range_lower, range_upper)
 
     except Exception as e:
-        logger.error(f"[price_density] Error: {e}")
+        logger.error(f"[ERROR] get_range_by_density_dexscreener failed: {e}")
         return None
