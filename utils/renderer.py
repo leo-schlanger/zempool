@@ -2,7 +2,8 @@ import discord
 import logging
 from core.apr import simulate_apr_apy, format_small_number
 
-logger = logging.getLogger("renderer")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 async def send_analysis_result(interaction, info, network, pair, apr_value, price_range, closes, candles):
     if info["liquidity_usd"] < 5000:
@@ -18,14 +19,7 @@ async def send_analysis_result(interaction, info, network, pair, apr_value, pric
     weekly_usd = earnings['realistic_based_on_vol_liq']['weekly']
     yearly_usd = earnings['realistic_based_on_vol_liq']['yearly']
 
-    if candles:
-        chart_path = f"range_{pair.replace('/', '_')}.png"
-        chart_result = generate_range_chart(candles, price_range['lower'], price_range['upper'], chart_path)
-    else:
-        chart_result = None
-
-    coverage = get_range_coverage_ratio(closes, price_range["lower"], price_range["upper"])
-    apr_value = round(apr_value * coverage, 2)
+    coverage = f"{round((price_range['upper'] - price_range['lower']) / info['price_usd'] * 100, 2)}% simulated coverage"
 
     embed = discord.Embed(
         title="🧘 ZenPool Analysis",
@@ -44,6 +38,7 @@ async def send_analysis_result(interaction, info, network, pair, apr_value, pric
     embed.add_field(name="APR", value=f"{apr_value}%", inline=False)
     embed.add_field(name="APR (Daily)", value=f"{round(apr_value / 365, 4)}%", inline=True)
     embed.add_field(name="APR (Weekly)", value=f"{round(apr_value / 52, 4)}%", inline=True)
+
     embed.add_field(
         name="Range",
         value=f"$ {format_small_number(price_range['lower'])} - $ {format_small_number(price_range['upper'])}\n*{price_range.get('confidence', '')}*",
@@ -56,9 +51,6 @@ async def send_analysis_result(interaction, info, network, pair, apr_value, pric
         inline=False
     )
 
-    embed.set_footer(text="Note: Gas fees and IL (Impermanent Loss) not included.")
+    embed.set_footer(text=f"Note: Gas fees and IL not included. Coverage: {coverage}")
 
-    await interaction.followup.send(
-        embed=embed,
-        file=discord.File(chart_result) if chart_result else None,
-    )
+    await interaction.followup.send(embed=embed)
