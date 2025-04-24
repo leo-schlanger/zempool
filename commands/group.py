@@ -1,4 +1,3 @@
-
 from discord import app_commands
 from .generate import GenerateCommand
 from .help import HelpCommand

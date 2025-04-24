@@ -1,4 +1,3 @@
-
 SUPPORTED_NETWORKS = [
     "ethereum", "solana", "base", "bsc", "polygon", "arbitrum",
     "optimism", "avalanche", "cronos", "zksync", "fantom",
