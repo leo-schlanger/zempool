@@ -22,7 +22,6 @@ class DefiTopCommand(app_commands.Command):
             await interaction.followup.send("❌ Failed to fetch DeFi protocol data.")
             return
 
-        # Top 10 by TVL descending
         top_protocols = sorted(protocols, key=lambda x: x.get("tvl", 0), reverse=True)[:10]
 
         embed = discord.Embed(

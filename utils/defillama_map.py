@@ -1,8 +1,6 @@
-
 # Mapeia nomes conhecidos de DEX (como retornados pela DexScreener) para slugs válidos da DefiLlama
 DEX_TO_DEFILLAMA_SLUG = {
     "uniswap": "uniswap",
-    "aerodrome": "aerodrome-finance",
     "pancakeswap": "pancakeswap",
     "sushiswap": "sushiswap",
     "curve": "curve",
@@ -14,6 +12,7 @@ DEX_TO_DEFILLAMA_SLUG = {
     "spookyswap": "spookyswap",
     "solidly": "solidlydex",
     "baseswap": "baseswap",
+    "aerodrome": "aerodrome-finance",
     "orca": "orca",
     "raydium": "raydium",
     "jupiter": "jupiter-aggregator",
