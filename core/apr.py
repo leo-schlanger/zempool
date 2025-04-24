@@ -1,30 +1,30 @@
 import logging
+
 logger = logging.getLogger("apr")
 logger.setLevel(logging.DEBUG)
-def simulate_apr_apy(apr, volume, liquidity, capital=1000):
-    try:
-        # Conversão segura para float
-        apr = float(apr)
-        volume = float(volume)
-        liquidity = float(liquidity)
 
-        # Checagens de sanidade
+def simulate_apr_apy(apr_value, volume_usd, liquidity_usd, fee_rate=None, capital=1000):
+    try:
+        apr = float(apr_value)
+        volume = float(volume_usd)
+        liquidity = float(liquidity_usd)
+
         if apr <= 0 or volume <= 0 or liquidity <= 0:
+            logger.warning("[APR] Invalid inputs - apr, volume, or liquidity are non-positive.")
             return None
 
-        # Cálculo do retorno diário em % e em $ sobre capital fornecido (default: $1000)
         daily_return_rate = apr / 365 / 100
         daily_earn = round(capital * daily_return_rate, 2)
         weekly_earn = round(daily_earn * 7, 2)
         yearly_earn = round(capital * apr / 100, 2)
 
-        # Estimativa realista baseada em volume e liquidez (rendimento sobre proporção do volume)
+        fee = fee_rate if fee_rate is not None else 0.003
+
         proportion = volume / liquidity
-        realistic_daily_usd = round(proportion * 0.5 * capital * 0.003, 2)  # assume 0.3% fee share, split 50/50
+        realistic_daily_usd = round(proportion * 0.5 * capital * fee, 2)
         realistic_weekly_usd = round(realistic_daily_usd * 7, 2)
         realistic_yearly_usd = round(realistic_daily_usd * 365, 2)
 
-        # APY composto
         apy = (1 + daily_return_rate) ** 365 - 1
 
         return {
@@ -46,6 +46,7 @@ def simulate_apr_apy(apr, volume, liquidity, capital=1000):
         }
 
     except Exception as e:
+        logger.error(f"[APR] Failed to calculate APR/APY: {e}")
         return None
 
 
@@ -53,5 +54,6 @@ def format_small_number(n):
     try:
         n = float(n)
         return f"{n:.8f}" if n < 0.01 else f"{n:.4f}"
-    except:
+    except Exception as e:
+        logger.warning(f"[APR] format_small_number failed: {e}")
         return "0.0000"

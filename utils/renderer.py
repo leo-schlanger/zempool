@@ -1,6 +1,8 @@
 import discord
 import logging
 from core.apr import simulate_apr_apy, format_small_number
+from utils.defillama import get_protocol_summary
+from utils.defillama_map import DEX_TO_DEFILLAMA_SLUG
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -10,7 +12,16 @@ async def send_analysis_result(interaction, info, network, pair, apr_value, pric
         await interaction.followup.send("❌ Pool below minimum liquidity requirement ($5,000).")
         return
 
-    earnings = simulate_apr_apy(apr_value, info["volume_usd"], info["liquidity_usd"])
+    dex_slug = DEX_TO_DEFILLAMA_SLUG.get(info.get("dex", "").lower())
+    protocol_fees = get_protocol_summary(dex_slug) if dex_slug else None
+
+    if protocol_fees and "total24h" in protocol_fees and info["liquidity_usd"] > 0:
+        apr_value = round(float(protocol_fees["total24h"]) / info["liquidity_usd"] * 100, 2)
+        apr_source = "Real (DefiLlama)"
+    else:
+        apr_source = "Estimated (DexScreener volume)"
+
+    earnings = simulate_apr_apy(apr_value, info["volume_usd"], info["liquidity_usd"], fee_rate=info.get("fee_rate"))
     if not earnings:
         await interaction.followup.send("❌ Could not calculate APR.")
         return
@@ -35,7 +46,7 @@ async def send_analysis_result(interaction, info, network, pair, apr_value, pric
     embed.add_field(name="Volume", value=f"$ {info['volume_usd']:,.2f}", inline=True)
     embed.add_field(name="Liquidity", value=f"$ {info['liquidity_usd']:,.2f}", inline=True)
 
-    embed.add_field(name="APR", value=f"{apr_value}%", inline=False)
+    embed.add_field(name="APR", value=f"{apr_value}%\n*{apr_source}*", inline=False)
     embed.add_field(name="APR (Daily)", value=f"{round(apr_value / 365, 4)}%", inline=True)
     embed.add_field(name="APR (Weekly)", value=f"{round(apr_value / 52, 4)}%", inline=True)
 
