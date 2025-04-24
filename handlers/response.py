@@ -1,10 +1,7 @@
 import discord
-import logging
-from core.apr import simulate_apr_apy, format_small_number
-from core.chart_builder import generate_range_chart, get_range_coverage_ratio
+from utils.simulate_earnings import simulate_apr_apy, format_small_number
 from ui.reanalyze_view import ReanalyzeView
-
-logger = logging.getLogger("ZenPool")
+from core.chart_density import get_range_coverage_ratio
 
 async def send_analysis_result(interaction, info, network, pair, apr_value, price_range, closes, candles):
     if info["liquidity_usd"] < 5000:
@@ -16,10 +13,12 @@ async def send_analysis_result(interaction, info, network, pair, apr_value, pric
         await interaction.followup.send("❌ Could not calculate APR.")
         return
 
-    chart_result = None
     if candles:
+        from utils.chart_analysis import generate_range_chart
         chart_path = f"range_{pair.replace('/', '_')}.png"
         chart_result = generate_range_chart(candles, price_range['lower'], price_range['upper'], chart_path)
+    else:
+        chart_result = None
 
     coverage = get_range_coverage_ratio(closes, price_range["lower"], price_range["upper"])
     apr_value = round(apr_value * coverage, 2)
@@ -33,10 +32,12 @@ async def send_analysis_result(interaction, info, network, pair, apr_value, pric
     embed.add_field(name="Price", value=f"$ {format_small_number(info['price_usd'])}", inline=True)
     embed.add_field(name="Volume", value=f"$ {info['volume_usd']:,.2f}", inline=True)
     embed.add_field(name="Liquidity", value=f"$ {info['liquidity_usd']:,.2f}", inline=True)
+
     embed.add_field(name="APR", value=f"{apr_value}%", inline=False)
     embed.add_field(name="APR (Daily)", value=f"{round(apr_value / 365, 4)}%", inline=True)
     embed.add_field(name="APR (Weekly)", value=f"{round(apr_value / 52, 4)}%", inline=True)
-    embed.add_field(name="Range", value=f"$ {format_small_number(price_range['lower'])} - $ {format_small_number(price_range['upper'])}\n*{price_range.get('confidence', '')}*", inline=False)
+    embed.add_field(name="Range", value=f"$ {format_small_number(price_range['lower'])} - $ {format_small_number(price_range['upper'])}`\n*{price_range.get('confidence', '')}*", inline=False)
+
     embed.add_field(name="Earnings Est. ($1000)", value=f"• Daily: `$ {earnings['daily_usd']}`\n• Weekly: `$ {earnings['weekly_usd']}`\n• Yearly: `$ {earnings['yearly_usd']}`", inline=False)
     embed.set_footer(text="Note: Gas fees and IL (Impermanent Loss) not included.")
 
