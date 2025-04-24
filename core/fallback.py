@@ -17,3 +17,18 @@ def fetch_candles_fallback_coingecko(token_id: str, days: int = 90) -> list:
     except Exception as e:
         logger.warning(f"[FALLBACK] CoinGecko candle fetch failed: {e}")
         return []
+
+def fetch_candles_fallback(network: str, address: str, interval: str = "4h") -> list:
+    """
+    Busca candles históricos da Dexscreener, como fallback ao Chart principal.
+    """
+    try:
+        url = f"https://api.dexscreener.com/experimental/pair/{network}/{address}/chart?interval={interval}"
+        logger.info(f"[FALLBACK] Fetching candles from Dexscreener: {url}")
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("pairs", [{}])[0].get("chart", [])
+    except Exception as e:
+        logger.warning(f"[FALLBACK] Dexscreener candle fetch failed: {e}")
+        return []
