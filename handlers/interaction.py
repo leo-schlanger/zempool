@@ -3,7 +3,7 @@ import discord
 from core.apr import simulate_apr_apy, format_small_number
 from core.chart_builder import generate_range_chart, fetch_closing_prices
 from core.price_density import get_range_by_density_dexscreener
-from core.chart_density import get_range_coverage_ratio
+from core.chart_builder import get_range_coverage_ratio
 from core.fallback import fetch_candles_fallback
 from services.fetch_pool_data import fetch_pool_data
 from handlers.response import send_analysis_result
